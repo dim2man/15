@@ -1,14 +1,123 @@
+<!DOCTYPE html>
 <html>
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>15</title>
 	<style>
-
+		@media (orientation: landscape) {
+			html {font-size: 10vh;}
+		}
+		@media (orientation: portrait) {
+			html {font-size: 10vw;}
+		}
+		* {margin: 0; padding: 0; box-sizing: border-box;}
+		html {font-family: sans-serif;}
+		.container {position: absolute; width: 4rem; height: 4rem; top: 3rem; left: 3rem; line-height: 0;}
+		button {position: absolute; width: 1rem; height: 1rem; font-size: 0.8rem; top: 0; left: 0; transition: transform 0.15s ease-in-out;}
 	</style>
-	<script>
+	<script type="text/javascript">
+		const SIZE_X = 4, SIZE_Y = 4, ZERO = 0, SIZE = SIZE_X * SIZE_Y;
+		let containerEl;
+		let field = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,ZERO];
 
+		function indexByNum(num) {
+			return field.findIndex(n => n === num);
+		}
+
+		function indexToRowCol(index) {
+			const row = index % SIZE_X;
+			const col = Math.floor(index/SIZE_X);
+
+			return {row, col};
+		}
+
+		function rowColToIndex(row, col) {
+			return row * SIZE_X + col;
+		}
+
+		function canBeMoved(numIndex, zeroIndex) {
+			const {row: numRow, col: numCol} = indexToRowCol(numIndex);
+			const {row: zeroRow, col: zeroCol} = indexToRowCol(zeroIndex);
+			return (numRow === zeroRow - 1 && numCol === zeroCol) || (numRow === zeroRow && numCol === zeroCol + 1) || (numRow === zeroRow + 1 && numCol === zeroCol) || (numRow === zeroRow && numCol === zeroCol - 1);
+		}
+
+		function handleButtonClick(e) {
+			const buttonEl = e.currentTarget;
+			const num = +buttonEl.dataset.num;
+			const numIndex = indexByNum(num);
+			const zeroIndex = indexByNum(ZERO);
+
+			if (canBeMoved(numIndex, zeroIndex)) {
+				field[zeroIndex] = num;
+				field[numIndex] = ZERO;
+				placeButton(buttonEl, zeroIndex);
+			}
+		}
+
+		function placeButton(buttonEl, index) {
+			const {row, col} = indexToRowCol(index);
+			buttonEl.style.transform = `translateX(${row}rem) translateY(${col}rem)`;
+		}
+
+		function drawButtons() {
+			for(let i=0; i<field.length; i++) {
+				if (field[i] === ZERO) continue;
+				const buttonEl = document.createElement('button');
+				buttonEl.dataset.num = field[i];
+				buttonEl.addEventListener('click', handleButtonClick);
+				buttonEl.appendChild(document.createTextNode(field[i]));
+				placeButton(buttonEl, i);
+				containerEl.appendChild(buttonEl);
+			}
+		}
+
+		function calcInversion(index) {
+			const v = field[index];
+			let inversion = 0;
+			for (let i=index + 1; i<SIZE; i++) {
+				if (field[i] < v) inversion++;
+			}
+			return inversion;
+		}
+
+		function fixFieldIfNotSolvable() {
+			let totalInversion = 0;
+			for (let i=0; i<SIZE; i++) {
+				totalInversion += calcInversion(i);
+			}
+			if ((totalInversion + SIZE_X) % 2 !== SIZE_Y % 2) {
+				// replace 2 max numbers
+				const max1Index = indexByNum(SIZE - 1);
+				const max2Index = indexByNum(SIZE - 2);
+				field[max1Index] = SIZE - 2;
+				field[max2Index] = SIZE - 1;
+			}
+		} 
+
+		function initField() {
+			const seed = [];
+			for (let i=1; i<=SIZE; i++) {
+				seed[i-1] = i === SIZE ? ZERO : i;
+			}
+			let j = 0;
+			while(seed.length) {
+				const randomIndex = Math.floor(seed.length * Math.random());
+				field[j++] = seed[randomIndex];
+				seed.splice(randomIndex, 1);
+			}
+			fixFieldIfNotSolvable();
+		}
+
+		function init() {
+			containerEl = document.querySelector('.container');
+			initField();
+			drawButtons();
+		}
+
+		window.onload = init;
 	</script>
 </head>
 <body>
-	<h1>15
+	<div class="container"></div>
 </body>
 </html>
