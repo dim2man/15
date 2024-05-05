@@ -85,7 +85,7 @@
 			for (let i=0; i<SIZE; i++) {
 				totalInversion += calcInversion(i);
 			}
-			if ((totalInversion + SIZE_X) % 2 !== SIZE_Y % 2) {
+			if ((totalInversion + SIZE_X) % 2 === SIZE_Y % 2) {
 				// replace 2 max numbers
 				const max1Index = indexByNum(SIZE - 1);
 				const max2Index = indexByNum(SIZE - 2);
