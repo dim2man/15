@@ -25,8 +25,8 @@
 		}
 
 		function indexToRowCol(index) {
-			const row = index % SIZE_X;
-			const col = Math.floor(index/SIZE_X);
+			const row = Math.floor(index/SIZE_X);
+			const col = index % SIZE_X;
 
 			return {row, col};
 		}
@@ -35,10 +35,45 @@
 			return row * SIZE_X + col;
 		}
 
-		function canBeMoved(numIndex, zeroIndex) {
+		function getButtonIdByNum(num) {
+			return `btn_${num}`;
+		}
+
+		function getButtonElByNum(num) {
+			return document.getElementById(getButtonIdByNum(num));
+		}
+
+		function swapBy2D(rowZero, colZero, rowBtn, colBtn) {
+			const indexZero = rowColToIndex(rowZero, colZero);
+			const indexBtn = rowColToIndex(rowBtn, colBtn);
+			const btnNum = field[indexBtn];
+			const buttonEl = getButtonElByNum(btnNum);
+			field[indexZero] = btnNum;
+			field[indexBtn] = ZERO;
+			placeButton(buttonEl, indexZero);
+		}
+
+		function move(numIndex, zeroIndex) {
 			const {row: numRow, col: numCol} = indexToRowCol(numIndex);
 			const {row: zeroRow, col: zeroCol} = indexToRowCol(zeroIndex);
-			return (numRow === zeroRow - 1 && numCol === zeroCol) || (numRow === zeroRow && numCol === zeroCol + 1) || (numRow === zeroRow + 1 && numCol === zeroCol) || (numRow === zeroRow && numCol === zeroCol - 1);
+
+			if (numCol !== zeroCol && numRow !== zeroRow) {
+				// cannot be moved
+				return;
+			}
+
+			if (numCol === zeroCol) {
+				const dir = numRow > zeroRow ? 1 : -1;
+				for(let row = zeroRow; row !== numRow; row += dir) {
+					swapBy2D(row, zeroCol, row + dir, numCol);
+				}
+
+			} else { // numRow === zeroRow
+				const dir = numCol > zeroCol ? 1 : -1;
+				for(let col = zeroCol; col !== numCol; col += dir) {
+					swapBy2D(zeroRow, col, numRow, col + dir);
+				}
+			}
 		}
 
 		function handleButtonClick(e) {
@@ -47,22 +82,19 @@
 			const numIndex = indexByNum(num);
 			const zeroIndex = indexByNum(ZERO);
 
-			if (canBeMoved(numIndex, zeroIndex)) {
-				field[zeroIndex] = num;
-				field[numIndex] = ZERO;
-				placeButton(buttonEl, zeroIndex);
-			}
+			move(numIndex, zeroIndex);
 		}
 
 		function placeButton(buttonEl, index) {
 			const {row, col} = indexToRowCol(index);
-			buttonEl.style.transform = `translateX(${row}rem) translateY(${col}rem)`;
+			buttonEl.style.transform = `translateX(${col}rem) translateY(${row}rem)`;
 		}
 
 		function drawButtons() {
 			for(let i=0; i<field.length; i++) {
 				if (field[i] === ZERO) continue;
 				const buttonEl = document.createElement('button');
+				buttonEl.id = getButtonIdByNum(field[i]);
 				buttonEl.dataset.num = field[i];
 				buttonEl.addEventListener('click', handleButtonClick);
 				buttonEl.appendChild(document.createTextNode(field[i]));
@@ -75,22 +107,30 @@
 			const v = field[index];
 			let inversion = 0;
 			for (let i=index + 1; i<SIZE; i++) {
+				if (field[i] === ZERO) continue;
 				if (field[i] < v) inversion++;
 			}
 			return inversion;
 		}
 
-		function fixFieldIfNotSolvable() {
+		function calcTotalInversion() {
 			let totalInversion = 0;
 			for (let i=0; i<SIZE; i++) {
 				totalInversion += calcInversion(i);
 			}
-			if ((totalInversion + SIZE_X) % 2 === SIZE_Y % 2) {
+			return totalInversion;
+		}
+
+		function fixFieldIfNotSolvable() {
+			const totalInversion = calcTotalInversion();
+			const {row: zeroRow} = indexToRowCol(indexByNum(ZERO));
+			if ((totalInversion + zeroRow + 1) % 2 !== SIZE_Y % 2) {
 				// replace 2 max numbers
 				const max1Index = indexByNum(SIZE - 1);
 				const max2Index = indexByNum(SIZE - 2);
 				field[max1Index] = SIZE - 2;
 				field[max2Index] = SIZE - 1;
+				calcTotalInversion();
 			}
 		} 
 
