@@ -12,13 +12,21 @@
 		}
 		* {margin: 0; padding: 0; box-sizing: border-box;}
 		html {font-family: sans-serif;}
+		body.done {animation: 0.3s ease-in-out infinite flash;}
+		@keyframes flash {from {background-color: #fff;} 25% {background-color: #fee} 50% {background-color: #efe} 75% {background-color: #eef} to {background-color: #fff;}}
 		.container {position: absolute; width: 4rem; height: 4rem; top: 0.5rem; left: 0.5rem; line-height: 0;}
-		button {position: absolute; width: 1rem; height: 1rem; font-size: 0.8rem; top: 0; left: 0; transition: transform 0.15s ease-in-out;}
+		.control {position: absolute; width: 4rem; height: 0.5rem; top: 4.5rem; left: 0.5rem; display: flex; flex-direction: row; justify-content: space-between; align-items: center; font-size: 0.15rem;}
+		button.number {position: absolute; width: 1rem; height: 1rem; font-size: 0.8rem; top: 0; left: 0; transition: transform 0.15s ease-in-out;}
+		button#mix {padding: 0.05rem; line-height: inherit; font-size: inherit;}
+		#moves:before {content: "Перемещений: "; display: inline;}
+		#record:before {content: "Рекорд: "; display: inline;}
 	</style>
 	<script type="text/javascript">
 		const SIZE_X = 4, SIZE_Y = 4, ZERO = 0, SIZE = SIZE_X * SIZE_Y;
 		let containerEl;
 		let field = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,ZERO];
+		let moves = 0;
+		let record = Number(localStorage.getItem('record') || Infinity);
 
 		function indexByNum(num) {
 			return field.findIndex(n => n === num);
@@ -53,6 +61,29 @@
 			placeButton(buttonEl, indexZero);
 		}
 
+		function checkRecord() {
+			if (moves < record) {
+				record = moves;
+				localStorage.setItem('record', String(moves));
+				drawRecord();
+			}
+		}
+
+		function checkDone() {
+			let isDone = true;
+			for(let i=0; i<field.length - 1; i++) {
+				if(field[i] !== i+1) {
+					isDone = false;
+					break;
+				}
+			}
+			if (isDone) {
+				checkRecord();
+				document.body.classList.add('done');
+				setTimeout(function() {document.body.classList.remove('done');}, 1000);
+			}
+		}
+
 		function move(numIndex, zeroIndex) {
 			const {row: numRow, col: numCol} = indexToRowCol(numIndex);
 			const {row: zeroRow, col: zeroCol} = indexToRowCol(zeroIndex);
@@ -61,6 +92,9 @@
 				// cannot be moved
 				return;
 			}
+
+			moves++;
+			drawMoves();
 
 			if (numCol === zeroCol) {
 				const dir = numRow > zeroRow ? 1 : -1;
@@ -74,6 +108,8 @@
 					swapBy2D(zeroRow, col, numRow, col + dir);
 				}
 			}
+
+			checkDone();
 		}
 
 		function handleButtonClick(e) {
@@ -90,17 +126,35 @@
 			buttonEl.style.transform = `translateX(${col}rem) translateY(${row}rem)`;
 		}
 
+		function placeAllButtons() {
+			for(let i=0; i<field.length; i++) {
+				const num = field[i];
+				if (num === ZERO) continue;
+				const buttonEl = getButtonElByNum(num);
+				placeButton(buttonEl, i);
+			}
+		}
+
 		function drawButtons() {
 			for(let i=0; i<field.length; i++) {
 				if (field[i] === ZERO) continue;
 				const buttonEl = document.createElement('button');
 				buttonEl.id = getButtonIdByNum(field[i]);
+				buttonEl.className = 'number';
 				buttonEl.dataset.num = field[i];
 				buttonEl.addEventListener('click', handleButtonClick);
 				buttonEl.appendChild(document.createTextNode(field[i]));
 				placeButton(buttonEl, i);
 				containerEl.appendChild(buttonEl);
 			}
+		}
+
+		function drawMoves() {
+			document.getElementById('moves').innerText = moves;
+		}
+
+		function drawRecord() {
+			document.getElementById('record').innerText = record === Infinity ? 'нет' : record;
 		}
 
 		function calcInversion(index) {
@@ -148,10 +202,23 @@
 			fixFieldIfNotSolvable();
 		}
 
+		function initMix() {
+			const mixButton = document.getElementById('mix');
+			mixButton.addEventListener('click', function() {
+				initField();
+				placeAllButtons();
+				moves = 0;
+				drawMoves();
+			});
+		}
+
 		function init() {
 			containerEl = document.querySelector('.container');
 			initField();
 			drawButtons();
+			initMix();
+			drawMoves();
+			drawRecord();
 		}
 
 		window.onload = init;
@@ -159,5 +226,6 @@
 </head>
 <body>
 	<div class="container"></div>
+	<div class="control"><div id="moves"></div><div id="record"></div><button id="mix">Перемешать</button></div>
 </body>
 </html>
